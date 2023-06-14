@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "650627262277",
+    "project_id": "free-yk-video-editor",
+    "storage_bucket": "free-yk-video-editor.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:650627262277:android:9441fdbe0722e0cc09802c",
+        "android_client_info": {
+          "package_name": "com.example.freeykvideoeditor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "650627262277-66hmmme1bv506n82sainagd9iuei5ub5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBojVyrPwXwVeiQcA8MiER-gFA5Y2W2rqw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "650627262277-66hmmme1bv506n82sainagd9iuei5ub5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
