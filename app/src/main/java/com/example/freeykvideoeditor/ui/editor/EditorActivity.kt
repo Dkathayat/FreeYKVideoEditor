@@ -1,100 +1,237 @@
 package com.example.freeykvideoeditor.ui.editor
 
+
+import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.Companion.isPhotoPickerAvailable
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
-import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
-import com.example.freeykvideoeditor.R
+import androidx.lifecycle.lifecycleScope
+import com.arthenica.ffmpegkit.FFmpegKitConfig
+import com.arthenica.ffmpegkit.ReturnCode
 import com.example.freeykvideoeditor.databinding.ActivityEditorBinding
-import com.google.android.material.snackbar.Snackbar
+import com.example.freeykvideoeditor.ui.ffmpeg.callback.FFmpegSession
+import com.example.freeykvideoeditor.ui.ffmpeg.tools.ImagesToSingleVideo
+import com.example.freeykvideoeditor.ui.ffmpeg.tools.MediaCompressor
+import com.example.freeykvideoeditor.ui.ffmpeg.tools.MovieMaker
+import com.example.freeykvideoeditor.ui.ffmpeg.tools.TextOnVideo
+import com.example.freeykvideoeditor.utils.Utility
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 
 
-class EditorActivity : AppCompatActivity() {
+class EditorActivity : AppCompatActivity(), FFmpegSession {
 
-    private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityEditorBinding
+    lateinit var audio2: File
 
-    private var audio: File? = null
-    private var video: File? = null
-
+    private val mediaCompressor: MediaCompressor by lazy { MediaCompressor(applicationContext) }
+    private val utils: Utility by lazy { Utility(applicationContext) }
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         binding = ActivityEditorBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-//        setSupportActionBar(binding.toolbar)
 
-//        val navController = findNavController(R.id.nav_host_fragment_content_editor)
-//        appBarConfiguration = AppBarConfiguration(navController.graph)
-//        setupActionBarWithNavController(navController, appBarConfiguration)
+        val pickMultipleMedia =
+            registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
+                if (uris.isNotEmpty()) {
 
-        binding.fab.setOnClickListener { view ->
-            //LogDumpGetUnique()
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAnchorView(R.id.fab)
-                .setAction("Action", null).show()
-        }
-    }
+                    testExcution(uris)
 
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_editor)
-        return navController.navigateUp(appBarConfiguration)
-                || super.onSupportNavigateUp()
-    }
+//                    mediaCompressor.compressFiles(this, uris as ArrayList<Uri>) { compressedMedia ->
+//                        if (compressedMedia.isNotEmpty()) {
+//                            // shareMedia(compressedMedia)
+//                        }
+//
+//                    }
+                }
+            }
 
-    private fun ffmpegTestImp() {
-        val cmd = arrayOf(
-            "-i",
-            video!!.path,
-            "-i",
-            audio!!.path,
-            "-c:v",
-            "copy",
-            "-c:a",
-            "aac",
-            "-strict",
-            "experimental",
-            "-map",
-            "0:v:0",
-            "-map",
-            "1:a:0",
-            "-shortest",
-            "outputLocation.path"
-        )
-        // FFmpeg.execute(cmd,object : ExecuteBinaryResponseHandler(){
-
-        // })
-    }
-
-
-    fun LogDumpGetUnique(): String {
-       Log.d("ThisISTAG", isPhotoPickerAvailable().toString())
-        var log_dump: String =
-            "name=John Trust, username=john3, email=john3@gmail.com, id=434453; name=Hannah Smith, username=hsmith, email=hsm@test.com, id=23312; name=Hannah Smith, username=hsmith, id=3223423, email=hsm@test.com; name=Robert M, username=rm44, id=222342, email=rm@me.com; name=Robert M, username=rm4411, id=5535, email=rm@me.com; name=Susan Vee, username=sv55, id=443432, email=susanv123@me.com; name=Robert Nick, username=rnick33, id=23432, email=rnick@gmail.com; name=Robert Nick II, username=rnickTemp34, id=23432, email=rnick@gmail.com; name=Susan Vee, username=sv55, id=443432, email=susanv123@me.com;"
-        // code goes here
-        val username = mutableSetOf<String>()
-        val uniqueLogs = mutableListOf<String>()
-
-        for (log in log_dump.split(",")) {
-            val usernameSeen = log.substringAfter("username=").substringBefore(",")
-            if (usernameSeen !in username) {
-                username.add(usernameSeen)
-                uniqueLogs.add(log.replaceFirst(", id=\\d+".toRegex(), ""))
+        binding.addResources.setOnClickListener {
+            if (isPhotoPickerAvailable()) {
+                pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+            } else {
+                // for api leve below 28
+                launchMediaPickerIntent()
             }
         }
-        log_dump = uniqueLogs.joinToString(",")
-        Log.d("log_dump", log_dump)
-        return log_dump
+    }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun testExcution(file: List<Uri>) {
+        ImagesToSingleVideo.with(this)
+            .setVideoUrl(file.first())
+            .setImages(file)
+            .setInterval("25")
+            .setOutputFileName("merged_" + System.currentTimeMillis() + ".mp4")
+            .setVideoDuration("10")
+            //.setOutputPath(Uri.Builder)
+            .getSession(this)
+            .extract()
+    }
+
+    private fun textOnVideo(file: List<String>) {
+        val video = file.first()
+        TextOnVideo.with(this)
+            .setFile(video)
+            //.setOutputPath(Utils.outputPath + "video")
+            //.setOutputFileName("textOnVideo_" + System.currentTimeMillis() + ".mp4")
+            //.setFont(font) //Font .ttf of text
+            .setText("Text Displayed on Video!!") //Text to be displayed
+            .setColor("#50b90e") //Color of Text
+            .setSize("34") //Size of text
+            .addBorder(true) //This will add background with border on text
+            .setPosition(TextOnVideo.POSITION_CENTER_BOTTOM) //Can be selected
+            //.setCallback(this@MainActivity)
+            .draw()
+    }
+
+    private fun moveMakerEx(imageList: MutableList<Uri>) {
+        MovieMaker.with(this)
+            .setAudio(audio2)
+            .setFile(imageList)
+           // .setOutputPath(Utils(this).outputPath + "video")
+            .setOutputFileName("movie_" + System.currentTimeMillis() + ".mp4")
+            //.setCallback(this)
+            .convert()
+    }
+
+    private fun launchMediaPickerIntent() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.type = "*/*"
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, "image/*")
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        startForResultLauncher.launch(Intent.createChooser(intent, "Select Media"))
+    }
+
+    private val startForResultLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val data: Intent? = result.data
+
+                data?.let { intent ->
+                    val imageUris: MutableList<Uri> = mutableListOf()
+                    // Check if data contains a single URI
+                    val singleImageUri = intent.data
+                    singleImageUri?.let {
+                        imageUris.add(it)
+                    }
+                    // Check if data contains multiple URIs (e.g., when selecting multiple items)
+                    val clipData = intent.clipData
+                    clipData?.let {
+                        for (i in 0 until clipData.itemCount) {
+                            val uri = clipData.getItemAt(i).uri
+                            imageUris.add(uri)
+                        }
+                    }
+                    // Handle the selected images/videos here
+                    handleSelectedMedia(imageUris)
+                }
+            }
+        }
+
+
+    private fun handleSelectedMedia(uris: List<Uri>) {
+        // Process the list of selected URIs (example)
+        val imageList = mutableListOf<String>()
+        for (uri in uris) {
+            val inputVideoPath =
+                FFmpegKitConfig.getSafParameterForRead(this, uri)
+            imageList.add(inputVideoPath)
+        }
+        // testExcution(imageList)
+        // Do something with each image/video URI, such as display it in an ImageView or upload it
+
+    }
+
+    override fun getSession(session: com.arthenica.ffmpegkit.FFmpegSession) {
+        if (ReturnCode.isSuccess(session.returnCode)) {
+//            val exoPlayer = ExoPlayer.Builder(this).build()
+//            val mediaitem = MediaItem.fromUri("")
+//
+//            exoPlayer.apply {
+//                setMediaItem(mediaitem)
+//                seekTo(0)
+//                playWhenReady = true
+//            }.also {
+//                binding.editorPlayer.player =  it
+//            }
+
+            // SUCCESS
+
+        } else if (ReturnCode.isCancel(session.returnCode)) {
+
+            // CANCEL
+
+        } else {
+
+            // FAILURE
+            Log.d(
+                "TAG",
+                String.format(
+                    "Command failed with state %s and rc %s.%s",
+                    session.getState(),
+                    session.getReturnCode(),
+                    session.getFailStackTrace()
+                )
+            )
+
+        }
+    }
+
+    private fun getInstalledAppInformation() = lifecycleScope.launch(Dispatchers.IO) {
+        // Get the PackageManager instance
+        val packageManager = packageManager
+
+        // Get a list of all installed applications
+        val installedApps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+
+        installedApps.forEach { apps ->
+            println("App name : ${apps.name}")
+            println("App process name : ${apps.processName}")
+            println("App package name : ${apps.packageName}")
+
+        }
+
+        // Iterate through the installed apps and retrieve their information
+        for (appInfo in installedApps) {
+            val appName = appInfo.loadLabel(packageManager).toString()
+            val packageName = appInfo.packageName
+            val versionName = packageManager.getPackageInfo(packageName, 0).versionName
+            val versionCode = packageManager.getPackageInfo(packageName, 0).versionCode
+
+            // Do something with the app information
+            println("App Name: $appName")
+            println("Package Name: $packageName")
+            println("Version Name: $versionName")
+            println("Version Code: $versionCode")
+        }
+
+
+    }
+
+    override fun finish() {
+        mediaCompressor.cancelAllOperations()
+        //scheduleCacheCleanup()
+        super.finish()
+    }
+
+    override fun onStop() {
+        mediaCompressor.cancelAllOperations()
+        super.onStop()
     }
 
 }
+

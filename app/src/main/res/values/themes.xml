@@ -11,7 +11,7 @@
         <item name="colorOnSecondary">@color/black</item>
 
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">@color/main_color2</item>
+        <item name="android:statusBarColor">@color/purple_500</item>
         <!-- Customize your theme here. -->
     </style>
     <!-- Base application theme. -->
@@ -19,4 +19,10 @@
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
+
+    <style name="AlertDialogCustomTheme" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <!-- Customize the button colors here -->
+        <item name="colorAccent">@color/main_color2</item>
+    </style>
+
 </resources>

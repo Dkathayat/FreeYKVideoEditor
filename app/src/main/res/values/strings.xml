@@ -13,8 +13,10 @@
     <string name="first_fragment_label">First Fragment</string>
     <string name="second_fragment_label">Second Fragment</string>
     <string name="next">Next</string>
+    <string name="media_reduction_message">%1$s (%2$.1f%% reduction)</string>
     <string name="previous">Previous</string>
-
+    <string name="show_less">Show less</string>
+    <string name="show_more">Show more</string>
     <string name="lorem_ipsum">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris
         volutpat, dolor id interdum ullamcorper, risus dolor egestas lectus, sit amet mattis purus
@@ -51,4 +53,11 @@
         libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_compose">ComposeActivity</string>
+    <string name="format_percentage" translatable="false">%.1f%%</string>
+    <string name="error_unknown_filetype">Unkwon file!</string>
+    <string name="ffmpeg_canceled">Cancelled</string>
+    <string name="error_invalid_file">Invalid File type</string>
+    <string name="ffmpeg_error">Error while processing</string>
 </resources>
